@@ -1,0 +1,4 @@
+brew install fluxcd/tap/flux
+
+brew tap weaveworks/tap
+brew install weaveworks/tap/gitops

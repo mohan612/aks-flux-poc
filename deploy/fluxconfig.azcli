@@ -1,0 +1,32 @@
+CLUSTER=kub-flux
+RG=rg-kub-flux
+LOCATION=westeurope
+
+az k8s-configuration flux create -g $RG -c $CLUSTER  \
+  -n cluster-config --namespace cluster-config -t managedClusters \
+  --scope cluster -u https://github.com/gbaeke/gitops-talk \
+  --branch main --https-user gbaeke --https-key $HTTPS_KEY \
+  --kustomization name=infra path=./infrastructure prune=true \
+  --kustomization name=apps path=./apps/staging prune=true dependsOn=["infra"]
+
+az k8s-configuration flux show -g $RG -c $CLUSTER -n cluster-config -t managedClusters
+
+az k8s-configuration flux delete -g $RG -c $CLUSTER -n cluster-config -t managedClusters --yes
+
+# to create flux kustomizations etc...
+flux create source helm redis \
+   --url=https://charts.bitnami.com/bitnami \
+   --interval=10m --export
+
+flux create source helm redis \
+   --url=https://charts.bitnami.com/bitnami --namespace cluster-config \
+   --interval=10m --export
+
+flux create helmrelease redis \
+  --source=HelmRepository/redis \
+  --chart=redis \
+  --release-name=redis \
+  --namespace=cluster-config \
+  --target-namespace=redis \
+  --create-target-namespace=true \
+  --export

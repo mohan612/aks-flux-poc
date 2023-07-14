@@ -1,0 +1,25 @@
+CLUSTER=kub-flux
+RG=rg-kub-flux
+LOCATION=westeurope
+
+az group create --name $RG --location $LOCATION
+
+az aks create -g $RG -n $CLUSTER --node-count 2 --generate-ssh-keys
+
+# pause 15 seconds to let the cluster settle
+sleep 15
+
+az aks get-credentials -g $RG -n $CLUSTER --admin --overwrite-existing
+
+# add gitops extensions
+az extension add -n k8s-configuration --upgrade
+az extension add -n k8s-extension --upgrade
+
+# install Flux extension
+az k8s-extension create -g $RG -c $CLUSTER -n flux --extension-type microsoft.flux \
+    -t managedClusters --auto-upgrade-minor-version true \
+    --config image-automation-controller.enabled=true \
+    --config image-reflector-controller.enabled=true
+
+# get all pods from the flux namespace
+kubectl get pods -n flux-system
